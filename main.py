@@ -1,15 +1,15 @@
-from diffusers import AutoPipelineForText2Image
-from PIL import Image
 import sys
 import time
-import torch
 import schedule
-from llama_cpp import Llama
 from artist import Artist
+import configparser
+
+
 
 count = 1
 artist = None
 
+# Called by the scheduler - Triggers the artist to make art.
 def job():
     global count
     global artist
@@ -20,9 +20,20 @@ def job():
     count = count + 1
 
 if __name__=="__main__":
-    artist = Artist()
-    job()
-    schedule.every().hour.at(":08").do(job)
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+
+    artist = Artist(
+        sd_model_id = config["Models"]["sd_model_id"],
+        llm_model_id = config["Models"]["llm_model_id"],
+        llm_file_name = config["Models"]["llm_file_name"],
+        num_inference_steps = int(config["Settings"]["num_inference_steps"]),
+        seed_prompt = config["Settings"]["seed_prompt"],
+        negative_prompt = config["Settings"]["negative_prompt"],
+    )
+
+    job() # Manually run the first job to get us started quick
+    schedule.every().hour.at(":00").do(job)
     while True:
         schedule.run_pending()
         time.sleep(1)

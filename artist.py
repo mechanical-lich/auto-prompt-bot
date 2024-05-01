@@ -5,16 +5,46 @@ from PIL import Image
 import time
 
 class Artist:
-    sd_model_id = "kandinsky-community/kandinsky-2-2-decoder"
-    llm_model_id = "TheBloke/MythoMist-7B-GGUF"
-    llm_file_name = "mythomist-7b.Q5_K_M.gguf"
+    sd_model_id = ""
+    llm_model_id = ""
+    llm_file_name = ""
 
     llm = None
     pipe = None
 
     seed_prompt = 'An example of a prompt for Stable Diffusion is "'
-    
-    def __init__(self, no_sd=False, no_llm=False) -> None:
+    negative_prompt = "low quality, bad quality"
+    num_inference_steps = 50
+
+    def __init__(self, 
+                 no_sd=False, 
+                 no_llm=False,
+                 sd_model_id = "",
+                 llm_model_id = "",
+                 llm_file_name = "",
+                 num_inference_steps = 50,
+                 seed_prompt = "",
+                 negative_prompt = ""
+                 ) -> None:
+        
+        # Validation
+        if sd_model_id == "" or llm_file_name == "" or llm_model_id == "" or seed_prompt == "" or negative_prompt == "":
+            raise Exception("missing required configuration")
+
+        # Configuration
+        self.sd_model_id = sd_model_id
+        self.llm_model_id = llm_model_id
+        self.llm_file_name = llm_file_name
+        self.num_inference_steps = num_inference_steps
+        self.seed_prompt = seed_prompt
+        self.negative_prompt = negative_prompt
+
+        # Let's gooooo
+        print("Seed prompt: {prompt}".format(prompt=self.seed_prompt))
+        print("Negative prompt: {prompt}".format(prompt=self.negative_prompt))
+
+
+        # Initiate the models
         if not no_llm:
             print("Initializing llm...") 
             self.llm = Llama.from_pretrained(
@@ -35,7 +65,7 @@ class Artist:
     def generate_prompt(self):
         resp = self.llm(
         prompt=self.seed_prompt, # Prompt
-        max_tokens=77, # Generate up to 32 tokens, set to None to generate up to the end of the context window
+        max_tokens=77, # Generate up to 77 tokens, set to None to generate up to the end of the context window
         stop=['"'], # Stop generating just before the model would generate a new question
         echo=False # Echo the prompt back in the output
         )
@@ -43,14 +73,12 @@ class Artist:
 
 
     def generate_image(self, prompt):
-        negative_prompt = "low quality, bad quality, deformed"
-
         image = self.pipe(prompt=prompt, 
-                    negative_prompt=negative_prompt, 
-                    prior_guidance_scale =1,
-                    num_inference_steps=50, 
+                    negative_prompt=self.negative_prompt, 
+                    prior_guidance_scale = 1,
+                    num_inference_steps=self.num_inference_steps, 
                     width=400, height=400, 
-                    #callback_on_step_end=decode_tensors, 
+                    #callback_on_step_end=decode_tensors,  # Uncomment both lines to output intermidiate stages
                     #callback_on_step_end_tensor_inputs=["latents"]
                     ).images[0]
 
